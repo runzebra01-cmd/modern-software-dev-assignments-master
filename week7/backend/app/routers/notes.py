@@ -36,6 +36,7 @@ def list_notes(
 
 @router.post("/", response_model=NoteRead, status_code=201)
 def create_note(payload: NoteCreate, db: Session = Depends(get_db)) -> NoteRead:
+    """Create a new note."""
     note = Note(title=payload.title, content=payload.content)
     db.add(note)
     db.flush()
@@ -45,13 +46,20 @@ def create_note(payload: NoteCreate, db: Session = Depends(get_db)) -> NoteRead:
 
 @router.patch("/{note_id}", response_model=NoteRead)
 def patch_note(note_id: int, payload: NotePatch, db: Session = Depends(get_db)) -> NoteRead:
+    """Update specific fields of a note."""
+    if note_id <= 0:
+        raise HTTPException(status_code=400, detail="Note ID must be a positive integer")
+    
     note = db.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    
     if payload.title is not None:
         note.title = payload.title
+    
     if payload.content is not None:
         note.content = payload.content
+    
     db.add(note)
     db.flush()
     db.refresh(note)
@@ -60,9 +68,45 @@ def patch_note(note_id: int, payload: NotePatch, db: Session = Depends(get_db)) 
 
 @router.get("/{note_id}", response_model=NoteRead)
 def get_note(note_id: int, db: Session = Depends(get_db)) -> NoteRead:
+    """Get a specific note by ID."""
+    if note_id <= 0:
+        raise HTTPException(status_code=400, detail="Note ID must be a positive integer")
+    
     note = db.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    return NoteRead.model_validate(note)
+
+
+@router.delete("/{note_id}", status_code=204)
+def delete_note(note_id: int, db: Session = Depends(get_db)) -> None:
+    """Delete a note."""
+    if note_id <= 0:
+        raise HTTPException(status_code=400, detail="Note ID must be a positive integer")
+    
+    note = db.get(Note, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    db.delete(note)
+
+
+@router.put("/{note_id}", response_model=NoteRead)
+def update_note(note_id: int, payload: NoteCreate, db: Session = Depends(get_db)) -> NoteRead:
+    """Fully update a note."""
+    if note_id <= 0:
+        raise HTTPException(status_code=400, detail="Note ID must be a positive integer")
+    
+    note = db.get(Note, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    note.title = payload.title
+    note.content = payload.content
+    
+    db.add(note)
+    db.flush()
+    db.refresh(note)
     return NoteRead.model_validate(note)
 
 

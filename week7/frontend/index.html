@@ -8,37 +8,75 @@
   </head>
   <body>
     <main>
-      <h1>Modern Software Dev Starter (Week 6)</h1>
+      <h1>Modern Software Dev Starter (Week 7)</h1>
+
+      <!-- Statistics Section -->
+      <section id="stats-section">
+        <h2>📊 Statistics</h2>
+        <div id="stats-container">
+          <div class="stat-card">
+            <h3>Notes</h3>
+            <div id="notes-count">-</div>
+          </div>
+          <div class="stat-card">
+            <h3>Action Items</h3>
+            <div id="actions-total">-</div>
+            <div class="stat-detail">
+              <span id="actions-completed">-</span> completed, 
+              <span id="actions-pending">-</span> pending
+            </div>
+            <div class="stat-detail">
+              <span id="completion-rate">-</span>% complete
+            </div>
+          </div>
+        </div>
+        <button id="refresh-stats">Refresh Stats</button>
+      </section>
+
+      <!-- Global Search Section -->
+      <section>
+        <h2>🔍 Global Search</h2>
+        <div class="search-container">
+          <input id="global-search" placeholder="Search across notes and action items..." />
+          <button id="global-search-btn">Search All</button>
+          <button id="clear-search">Clear</button>
+        </div>
+        <div id="search-results" style="display: none;">
+          <h3>Search Results</h3>
+          <div id="search-summary"></div>
+          <div id="search-notes">
+            <h4>Notes</h4>
+            <ul id="search-notes-list"></ul>
+          </div>
+          <div id="search-actions">
+            <h4>Action Items</h4>
+            <ul id="search-actions-list"></ul>
+          </div>
+        </div>
+      </section>
 
       <section>
-        <h2>Notes</h2>
+        <h2>📝 Notes</h2>
         <form id="note-form">
           <input id="note-title" placeholder="Title" required />
           <input id="note-content" placeholder="Content" required />
-          <button type="submit">Add</button>
+          <button type="submit">Add Note</button>
         </form>
         <div style="margin:.25rem 0;">
-          <input id="note-search" placeholder="Search" />
+          <input id="note-search" placeholder="Search notes..." />
           <button id="note-search-btn">Search</button>
+          <button id="clear-note-search">Clear</button>
         </div>
         <ul id="notes"></ul>
       </section>
 
       <section>
-        <h2>Action Items</h2>
+        <h2>✅ Action Items</h2>
         <form id="action-form">
           <input id="action-desc" placeholder="Description" required />
-          <button type="submit">Add</button>
+          <button type="submit">Add Action Item</button>
         </form>
         <div style="margin:.25rem 0;">
           <label><input type="checkbox" id="filter-completed" /> Show completed only</label>
-        </div>
-        <ul id="actions"></ul>
-      </section>
-    </main>
-
-    <script src="/static/app.js"></script>
-  </body>
-  </html>
-
-
+          <button id="bulk-complete" style="margin-left: 10px;" disabled>Complete Selected</button>
+          <button id="bulk-delete" style="margin-left: 5px;" disabled>Delete Selected</button>

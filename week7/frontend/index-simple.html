@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modern Software Dev Starter</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Modern Software Dev Starter (Week 7)</h1>
+
+      <section>
+        <h2>📝 Notes</h2>
+        <form id="note-form">
+          <input id="note-title" placeholder="Title" required />
+          <input id="note-content" placeholder="Content" required />
+          <button type="submit">Add Note</button>
+        </form>
+        <div style="margin:.25rem 0;">
+          <input id="note-search" placeholder="Search notes..." />
+          <button id="note-search-btn">Search</button>
+          <button id="clear-note-search">Clear</button>
+        </div>
+        <ul id="notes"></ul>
+      </section>
+
+      <section>
+        <h2>✅ Action Items</h2>
+        <form id="action-form">
+          <input id="action-desc" placeholder="Description" required />
+          <button type="submit">Add Action Item</button>
+        </form>
+        <div style="margin:.25rem 0;">
+          <label><input type="checkbox" id="filter-completed" /> Show completed only</label>
+        </div>
+        <ul id="actions"></ul>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
