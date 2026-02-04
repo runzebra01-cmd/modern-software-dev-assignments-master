@@ -5,8 +5,9 @@ from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Note
+from ..models import ActionItem, Note
 from ..schemas import NoteCreate, NotePatch, NoteRead
+from ..services.extract import extract_action_items_advanced
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 
@@ -36,11 +37,32 @@ def list_notes(
 
 @router.post("/", response_model=NoteRead, status_code=201)
 def create_note(payload: NoteCreate, db: Session = Depends(get_db)) -> NoteRead:
-    """Create a new note."""
+    """Create a new note and automatically extract action items."""
+    # 1. 创建笔记
     note = Note(title=payload.title, content=payload.content)
     db.add(note)
     db.flush()
     db.refresh(note)
+    
+    # 2. 自动提取行动项 (Task 2 增强功能)
+    extracted_items = extract_action_items_advanced(payload.content)
+    
+    # 3. 为每个提取的行动项创建数据库记录
+    for item in extracted_items:
+        action_item = ActionItem(
+            description=item.text,
+            note_id=note.id,  # 关联到笔记
+            priority=item.priority,
+            category=item.category,
+            assignee=item.assignee,
+            due_date=item.due_date,
+            completed=False
+        )
+        db.add(action_item)
+    
+    db.commit()
+    db.refresh(note)
+    
     return NoteRead.model_validate(note)
 
 
