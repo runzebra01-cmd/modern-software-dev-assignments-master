@@ -27,6 +27,7 @@ async function loadNotes(params = {}) {
       if (confirm('Delete this note?')) {
         await fetchJSON(`/notes/${n.id}`, { method: 'DELETE' });
         loadNotes(params);
+        loadActions(); // 刷新action items列表
       }
     };
     
@@ -43,13 +44,37 @@ async function loadActions(params = {}) {
   
   const query = new URLSearchParams(params);
   const items = await fetchJSON('/action-items/?' + query.toString());
+  
+  // 获取所有笔记用于显示标题
+  const notes = await fetchJSON('/notes/');
+  const noteMap = {};
+  notes.forEach(n => noteMap[n.id] = n.title);
+  
   for (const a of items) {
     const li = document.createElement('li');
     li.className = 'action-item';
     
     const content = document.createElement('div');
     content.className = 'action-item-content';
-    content.textContent = `${a.description} [${a.completed ? 'Completed' : 'Pending'}]`;
+    
+    // 显示action item内容和所属笔记
+    let displayText = a.description;
+    if (a.note_id && noteMap[a.note_id]) {
+      displayText = `[${noteMap[a.note_id]}] ${a.description}`;
+    }
+    
+    // 添加优先级、负责人等信息
+    let metaInfo = [];
+    if (a.priority) metaInfo.push(`优先级:${a.priority}`);
+    if (a.assignee) metaInfo.push(`@${a.assignee}`);
+    if (a.due_date) metaInfo.push(`截止:${a.due_date}`);
+    
+    if (metaInfo.length > 0) {
+      displayText += ` (${metaInfo.join(', ')})`;
+    }
+    
+    displayText += ` [${a.completed ? 'Completed' : 'Pending'}]`;
+    content.textContent = displayText;
     
     const actions = document.createElement('div');
     actions.className = 'action-buttons';
@@ -108,6 +133,7 @@ window.addEventListener('DOMContentLoaded', () => {
       });
       e.target.reset();
       loadNotes();
+      loadActions(); // 刷新行动项列表，显示自动提取的项目
     } catch (error) {
       alert('Failed to create note: ' + error.message);
     }
