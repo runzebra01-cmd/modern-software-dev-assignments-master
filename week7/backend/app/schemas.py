@@ -55,6 +55,12 @@ class ActionItemRead(BaseModel):
     completed: bool
     created_at: datetime
     updated_at: datetime
+    # Task 2 增强字段
+    note_id: int | None = None
+    priority: str | None = None
+    category: str | None = None
+    assignee: str | None = None
+    due_date: str | None = None
 
     class Config:
         from_attributes = True
