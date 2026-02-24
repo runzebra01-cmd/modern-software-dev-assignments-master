@@ -114,7 +114,9 @@ def extract_action_items_advanced(text: str) -> list[ExtractedActionItem]:
         for pattern, detected_priority in action_patterns.items():
             if re.search(pattern, normalized):
                 is_action = True
-                priority = detected_priority
+                # Only update priority if not already high (preserve high from exclamation)
+                if priority != "high":
+                    priority = detected_priority
                 if 'todo' in normalized or 'task' in normalized:
                     category = "task"
                 elif 'action' in normalized:
@@ -201,8 +203,9 @@ def categorize_action_items(items: list[ExtractedActionItem]) -> dict[str, list[
         else:
             categorized["low_priority"].append(item)
         
-        # Categorize by type
-        categorized["by_category"][item.category].append(item)
+        # Categorize by type - use setdefault to handle unexpected categories
+        category_key = item.category if item.category in categorized["by_category"] else "general"
+        categorized["by_category"][category_key].append(item)
     
     return categorized
 

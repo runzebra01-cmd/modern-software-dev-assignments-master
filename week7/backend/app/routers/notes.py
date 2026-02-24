@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import ActionItem, Note
-from ..schemas import NoteCreate, NotePatch, NoteRead
+from ..schemas import NoteCreate, NotePatch, NoteRead, NoteReadWithTags
 from ..services.extract import extract_action_items_advanced
 
 router = APIRouter(prefix="/notes", tags=["notes"])
@@ -85,6 +85,7 @@ def patch_note(note_id: int, payload: NotePatch, db: Session = Depends(get_db)) 
     db.add(note)
     db.flush()
     db.refresh(note)
+    db.commit()
     return NoteRead.model_validate(note)
 
 
@@ -100,6 +101,18 @@ def get_note(note_id: int, db: Session = Depends(get_db)) -> NoteRead:
     return NoteRead.model_validate(note)
 
 
+@router.get("/{note_id}/with-tags", response_model=NoteReadWithTags)
+def get_note_with_tags(note_id: int, db: Session = Depends(get_db)) -> NoteReadWithTags:
+    """Get a specific note by ID with its associated tags (Task 3)."""
+    if note_id <= 0:
+        raise HTTPException(status_code=400, detail="Note ID must be a positive integer")
+    
+    note = db.get(Note, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return NoteReadWithTags.model_validate(note)
+
+
 @router.delete("/{note_id}", status_code=204)
 def delete_note(note_id: int, db: Session = Depends(get_db)) -> None:
     """Delete a note."""
@@ -111,6 +124,7 @@ def delete_note(note_id: int, db: Session = Depends(get_db)) -> None:
         raise HTTPException(status_code=404, detail="Note not found")
     
     db.delete(note)
+    db.commit()
 
 
 @router.put("/{note_id}", response_model=NoteRead)
@@ -129,6 +143,7 @@ def update_note(note_id: int, payload: NoteCreate, db: Session = Depends(get_db)
     db.add(note)
     db.flush()
     db.refresh(note)
+    db.commit()
     return NoteRead.model_validate(note)
 
 

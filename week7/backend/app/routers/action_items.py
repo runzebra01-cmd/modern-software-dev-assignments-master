@@ -44,6 +44,90 @@ def create_item(payload: ActionItemCreate, db: Session = Depends(get_db)) -> Act
     return ActionItemRead.model_validate(item)
 
 
+@router.put("/bulk/complete", response_model=dict)
+def bulk_complete_items(
+    item_ids: list[int], 
+    db: Session = Depends(get_db)
+) -> dict:
+    """Mark multiple action items as completed."""
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="No item IDs provided")
+    
+    if any(item_id <= 0 for item_id in item_ids):
+        raise HTTPException(status_code=400, detail="All item IDs must be positive integers")
+    
+    # Check if all items exist
+    items = db.execute(
+        select(ActionItem).where(ActionItem.id.in_(item_ids))
+    ).scalars().all()
+    
+    found_ids = {item.id for item in items}
+    missing_ids = set(item_ids) - found_ids
+    
+    if missing_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Action items not found: {sorted(missing_ids)}"
+        )
+    
+    # Update items
+    updated_count = 0
+    try:
+        for item in items:
+            if not item.completed:
+                item.completed = True
+                db.add(item)
+                updated_count += 1
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    
+    return {
+        "message": f"Successfully updated {updated_count} items",
+        "updated_count": updated_count,
+        "total_requested": len(item_ids)
+    }
+
+
+@router.delete("/bulk", status_code=200)
+def bulk_delete_items(
+    item_ids: list[int],
+    db: Session = Depends(get_db)
+) -> dict:
+    """Delete multiple action items."""
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="No item IDs provided")
+    
+    if any(item_id <= 0 for item_id in item_ids):
+        raise HTTPException(status_code=400, detail="All item IDs must be positive integers")
+    
+    # Check if all items exist and delete them
+    items = db.execute(
+        select(ActionItem).where(ActionItem.id.in_(item_ids))
+    ).scalars().all()
+    
+    found_ids = {item.id for item in items}
+    missing_ids = set(item_ids) - found_ids
+    
+    if missing_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Action items not found: {sorted(missing_ids)}"
+        )
+    
+    # Delete items
+    for item in items:
+        db.delete(item)
+    db.commit()
+    
+    return {
+        "message": f"Successfully deleted {len(items)} items",
+        "deleted_count": len(items),
+        "deleted_ids": sorted(item_ids)
+    }
+
+
 @router.put("/{item_id}/complete", response_model=ActionItemRead)
 def complete_item(item_id: int, db: Session = Depends(get_db)) -> ActionItemRead:
     """Mark an action item as completed."""
@@ -130,81 +214,6 @@ def update_item(item_id: int, payload: ActionItemCreate, db: Session = Depends(g
     return ActionItemRead.model_validate(item)
 
 
-@router.put("/bulk/complete", response_model=dict)
-def bulk_complete_items(
-    item_ids: list[int], 
-    db: Session = Depends(get_db)
-) -> dict:
-    """Mark multiple action items as completed."""
-    if not item_ids:
-        raise HTTPException(status_code=400, detail="No item IDs provided")
-    
-    if any(item_id <= 0 for item_id in item_ids):
-        raise HTTPException(status_code=400, detail="All item IDs must be positive integers")
-    
-    # Check if all items exist
-    items = db.execute(
-        select(ActionItem).where(ActionItem.id.in_(item_ids))
-    ).scalars().all()
-    
-    found_ids = {item.id for item in items}
-    missing_ids = set(item_ids) - found_ids
-    
-    if missing_ids:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Action items not found: {sorted(missing_ids)}"
-        )
-    
-    # Update items
-    updated_count = 0
-    for item in items:
-        if not item.completed:
-            item.completed = True
-            db.add(item)
-            updated_count += 1
-    
-    return {
-        "message": f"Successfully updated {updated_count} items",
-        "updated_count": updated_count,
-        "total_requested": len(item_ids)
-    }
-
-
-@router.delete("/bulk", status_code=200)
-def bulk_delete_items(
-    item_ids: list[int],
-    db: Session = Depends(get_db)
-) -> dict:
-    """Delete multiple action items."""
-    if not item_ids:
-        raise HTTPException(status_code=400, detail="No item IDs provided")
-    
-    if any(item_id <= 0 for item_id in item_ids):
-        raise HTTPException(status_code=400, detail="All item IDs must be positive integers")
-    
-    # Check if all items exist and delete them
-    items = db.execute(
-        select(ActionItem).where(ActionItem.id.in_(item_ids))
-    ).scalars().all()
-    
-    found_ids = {item.id for item in items}
-    missing_ids = set(item_ids) - found_ids
-    
-    if missing_ids:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Action items not found: {sorted(missing_ids)}"
-        )
-    
-    # Delete items
-    for item in items:
-        db.delete(item)
-    
-    return {
-        "message": f"Successfully deleted {len(items)} items",
-        "deleted_count": len(items),
-        "deleted_ids": sorted(item_ids)
-    }
+# Bulk endpoints are now defined above parameterized routes
 
 

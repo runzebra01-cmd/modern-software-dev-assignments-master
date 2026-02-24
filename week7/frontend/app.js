@@ -1,7 +1,65 @@
 async function fetchJSON(url, options) {
   const res = await fetch(url, options);
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  // Handle 204 No Content or empty responses
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return null;
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// 全局标签列表缓存
+let allTags = [];
+
+async function loadAllTags() {
+  allTags = await fetchJSON('/tags/');
+  return allTags;
+}
+
+// 显示按标签筛选的笔记
+async function displayFilteredNotes(notes, tagName) {
+  const list = document.getElementById('notes');
+  list.innerHTML = '';
+  
+  // 添加筛选提示和清除按钮
+  const header = document.createElement('div');
+  header.className = 'filter-header';
+  header.innerHTML = `<span>🔖 筛选: "${tagName}" (${notes.length}条)</span>`;
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = '显示全部';
+  clearBtn.onclick = () => loadNotes();
+  header.appendChild(clearBtn);
+  list.appendChild(header);
+  
+  for (const n of notes) {
+    const li = document.createElement('li');
+    li.className = 'note-item';
+    
+    // 获取该笔记的标签
+    let noteTags = n.tags || [];
+    
+    const content = document.createElement('div');
+    content.className = 'note-content';
+    content.innerHTML = `<strong>${n.title}</strong>: ${n.content}`;
+    
+    // 显示标签（可点击移除）
+    if (noteTags.length > 0) {
+      const tagsContainer = document.createElement('span');
+      tagsContainer.className = 'note-tags';
+      for (const t of noteTags) {
+        const badge = document.createElement('span');
+        badge.className = 'tag-badge';
+        badge.style.background = t.color || '#ccc';
+        badge.textContent = t.name;
+        tagsContainer.appendChild(badge);
+      }
+      content.appendChild(tagsContainer);
+    }
+    
+    li.appendChild(content);
+    list.appendChild(li);
+  }
 }
 
 async function loadNotes(params = {}) {
@@ -9,28 +67,102 @@ async function loadNotes(params = {}) {
   list.innerHTML = '';
   const query = new URLSearchParams(params);
   const notes = await fetchJSON('/notes/?' + query.toString());
-  for (const n of notes) {
+  
+  // 确保有标签数据
+  if (allTags.length === 0) {
+    await loadAllTags();
+  }
+  
+  // 批量获取所有笔记的标签（避免N+1查询）
+  const notesWithTags = await Promise.all(
+    notes.map(async n => {
+      try {
+        const noteWithTags = await fetchJSON(`/notes/${n.id}/with-tags`);
+        return { ...n, tags: noteWithTags.tags || [] };
+      } catch (e) {
+        return { ...n, tags: [] };
+      }
+    })
+  );
+  
+  for (const n of notesWithTags) {
     const li = document.createElement('li');
     li.className = 'note-item';
+    
+    const noteTags = n.tags || [];
     
     const content = document.createElement('div');
     content.className = 'note-content';
     content.innerHTML = `<strong>${n.title}</strong>: ${n.content}`;
     
+    // 显示标签（可点击移除）
+    if (noteTags.length > 0) {
+      const tagsContainer = document.createElement('span');
+      tagsContainer.className = 'note-tags';
+      for (const t of noteTags) {
+        const badge = document.createElement('span');
+        badge.className = 'tag-badge removable';
+        badge.style.background = t.color || '#ccc';
+        badge.innerHTML = `${t.name} <span class="remove-tag">×</span>`;
+        badge.title = '点击移除标签';
+        badge.onclick = async () => {
+          if (confirm(`从笔记中移除标签 "${t.name}"?`)) {
+            try {
+              const res = await fetch(`/tags/${t.id}/notes/${n.id}`, { method: 'DELETE' });
+              if (!res.ok) {
+                throw new Error(await res.text() || res.statusText);
+              }
+              loadNotes(params);
+            } catch (e) {
+              console.error('Failed to remove tag:', e);
+              alert('移除标签失败: ' + e.message);
+            }
+          }
+        };
+        tagsContainer.appendChild(badge);
+      }
+      content.appendChild(tagsContainer);
+    }
+    
     const actions = document.createElement('div');
     actions.className = 'note-actions';
+    
+    // 标签选择下拉框
+    const tagSelect = document.createElement('select');
+    tagSelect.className = 'tag-select';
+    tagSelect.innerHTML = '<option value="">+ Tag</option>' + 
+      allTags.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    tagSelect.onchange = async () => {
+      const tagId = tagSelect.value;
+      if (tagId) {
+        try {
+          await fetchJSON(`/tags/${tagId}/notes/${n.id}`, { method: 'POST' });
+          loadNotes(params);
+        } catch (e) {
+          console.error('Failed to add tag:', e);
+          alert('标签已存在或添加失败: ' + e.message);
+        }
+        tagSelect.value = '';
+      }
+    };
     
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
     deleteBtn.className = 'btn-danger';
     deleteBtn.onclick = async () => {
       if (confirm('Delete this note?')) {
-        await fetchJSON(`/notes/${n.id}`, { method: 'DELETE' });
-        loadNotes(params);
-        loadActions(); // 刷新action items列表
+        try {
+          await fetchJSON(`/notes/${n.id}`, { method: 'DELETE' });
+          loadNotes(params);
+          loadActions();
+        } catch (e) {
+          console.error('Failed to delete note:', e);
+          alert('删除笔记失败: ' + e.message);
+        }
       }
     };
     
+    actions.appendChild(tagSelect);
     actions.appendChild(deleteBtn);
     li.appendChild(content);
     li.appendChild(actions);
@@ -119,6 +251,64 @@ async function loadActions(params = {}) {
   }
 }
 
+// Tag functions (Task 3)
+async function loadTags() {
+  const list = document.getElementById('tags');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  const tags = await fetchJSON('/tags/');
+  allTags = tags; // 更新全局标签缓存
+  
+  for (const tag of tags) {
+    const li = document.createElement('li');
+    li.className = 'tag-item';
+    li.style.borderLeft = `4px solid ${tag.color || '#ccc'}`;
+    
+    const content = document.createElement('span');
+    content.className = 'tag-name';
+    content.textContent = tag.name;
+    content.style.color = tag.color || '#333';
+    
+    const actions = document.createElement('div');
+    actions.className = 'tag-actions';
+    
+    // 筛选按钮 - 按标签筛选笔记
+    const filterBtn = document.createElement('button');
+    filterBtn.textContent = '筛选';
+    filterBtn.className = 'btn-primary';
+    filterBtn.title = '显示带有此标签的笔记';
+    filterBtn.onclick = async () => {
+      // 获取该标签下的笔记
+      const notesWithTag = await fetchJSON(`/tags/${tag.id}/notes`);
+      displayFilteredNotes(notesWithTag, tag.name);
+    };
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'btn-danger';
+    deleteBtn.onclick = async () => {
+      if (confirm(`Delete tag "${tag.name}"?`)) {
+        try {
+          await fetchJSON(`/tags/${tag.id}`, { method: 'DELETE' });
+          loadTags();
+          loadNotes(); // 刷新笔记列表以更新标签显示
+        } catch (e) {
+          console.error('Failed to delete tag:', e);
+          alert('删除标签失败: ' + e.message);
+        }
+      }
+    };
+    
+    actions.appendChild(filterBtn);
+    actions.appendChild(deleteBtn);
+    
+    li.appendChild(content);
+    li.appendChild(actions);
+    list.appendChild(li);
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   // Note form
   document.getElementById('note-form').addEventListener('submit', async (e) => {
@@ -176,9 +366,34 @@ window.addEventListener('DOMContentLoaded', () => {
     loadActions({ completed: checked });
   });
   
-  // Load initial data
-  loadNotes();
-  loadActions();
+  // Tag form (Task 3)
+  const tagForm = document.getElementById('tag-form');
+  if (tagForm) {
+    tagForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('tag-name').value;
+      const color = document.getElementById('tag-color').value;
+      try {
+        await fetchJSON('/tags/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, color }),
+        });
+        e.target.reset();
+        document.getElementById('tag-color').value = '#3498db'; // Reset color
+        loadTags();
+        loadNotes(); // 刷新笔记列表以显示新标签选项
+      } catch (error) {
+        alert('Failed to create tag: ' + error.message);
+      }
+    });
+  }
+  
+  // Load initial data - 先加载标签，再加载笔记
+  loadTags().then(() => {
+    loadNotes();
+    loadActions();
+  });
 });
 
 

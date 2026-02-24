@@ -88,3 +88,47 @@ class SearchResult(BaseModel):
     action_items_count: int = 0
 
 
+# Tag schemas (Task 3: New model with relationships)
+class TagCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50, description="Tag name")
+    color: str | None = Field(None, max_length=20, description="Tag color (e.g., #FF5733)")
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('Tag name cannot be empty or contain only whitespace')
+        return v.strip()
+
+
+class TagRead(BaseModel):
+    id: int
+    name: str
+    color: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TagPatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=50, description="Tag name")
+    color: str | None = Field(None, max_length=20, description="Tag color")
+
+    @field_validator('name')
+    @classmethod
+    def validate_name_if_provided(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError('Tag name cannot be empty or contain only whitespace')
+        return v.strip() if v is not None else v
+
+
+# Extended Note schemas with tags
+class NoteReadWithTags(NoteRead):
+    """Note with associated tags."""
+    tags: list[TagRead] = []
+
+    class Config:
+        from_attributes = True
+
