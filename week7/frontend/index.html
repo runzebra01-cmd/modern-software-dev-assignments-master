@@ -80,3 +80,22 @@
           <label><input type="checkbox" id="filter-completed" /> Show completed only</label>
           <button id="bulk-complete" style="margin-left: 10px;" disabled>Complete Selected</button>
           <button id="bulk-delete" style="margin-left: 5px;" disabled>Delete Selected</button>
+        </div>
+        <ul id="actions"></ul>
+      </section>
+
+      <!-- Tags Section (Task 3) -->
+      <section id="tags-section">
+        <h2>🏷️ Tags</h2>
+        <form id="tag-form">
+          <input id="tag-name" placeholder="Tag name" required />
+          <input id="tag-color" type="color" value="#3498db" title="Tag color" />
+          <button type="submit">Add Tag</button>
+        </form>
+        <ul id="tags"></ul>
+      </section>
+
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

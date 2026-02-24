@@ -33,7 +33,10 @@ async function loadNotes(params = {}) {
       
       const content = document.createElement('div');
       content.className = 'note-content';
-      content.innerHTML = `<strong>${n.title}</strong>: ${n.content}`;
+      const titleEl = document.createElement('strong');
+      titleEl.textContent = n.title;
+      content.appendChild(titleEl);
+      content.appendChild(document.createTextNode(': ' + n.content));
       
       const actions = document.createElement('div');
       actions.className = 'note-actions';
@@ -196,4 +199,4 @@ window.addEventListener('DOMContentLoaded', () => {
   loadActions();
 });
 
-console.log('app.js loaded');
+console.log('app-debug.js loaded');

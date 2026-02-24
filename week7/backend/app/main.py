@@ -4,8 +4,6 @@ from pathlib import Path
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +14,7 @@ from .routers import action_items as action_items_router
 from .routers import notes as notes_router
 from .routers import stats as stats_router
 from .routers import search as search_router
+from .routers import tags as tags_router
 
 app = FastAPI(title="Modern Software Dev Starter (Week 6)", version="0.1.0")
 
@@ -48,10 +47,11 @@ app.include_router(notes_router.router)
 app.include_router(action_items_router.router)
 app.include_router(stats_router.router)
 app.include_router(search_router.router)
+app.include_router(tags_router.router)
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8002, reload=True)
+    uvicorn.run("backend.app.main:app", host="127.0.0.1", port=8002, reload=True)
 
 

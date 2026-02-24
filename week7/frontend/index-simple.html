@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,8 +13,10 @@
       <section>
         <h2>📝 Notes</h2>
         <form id="note-form">
-          <input id="note-title" placeholder="Title" required />
-          <input id="note-content" placeholder="Content" required />
+          <label for="note-title" class="sr-only">Title</label>
+          <input id="note-title" placeholder="Title" aria-label="Note title" required />
+          <label for="note-content" class="sr-only">Content</label>
+          <input id="note-content" placeholder="Content" aria-label="Note content" required />
           <button type="submit">Add Note</button>
         </form>
         <div style="margin:.25rem 0;">
@@ -35,6 +37,17 @@
           <label><input type="checkbox" id="filter-completed" /> Show completed only</label>
         </div>
         <ul id="actions"></ul>
+      </section>
+
+      <!-- Tags Section (Task 3) -->
+      <section id="tags-section">
+        <h2>🏷️ Tags</h2>
+        <form id="tag-form">
+          <input id="tag-name" placeholder="Tag name" required />
+          <input id="tag-color" type="color" value="#3498db" title="Tag color" />
+          <button type="submit">Add Tag</button>
+        </form>
+        <ul id="tags"></ul>
       </section>
     </main>
 
