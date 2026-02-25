@@ -1,94 +1,111 @@
 """
-Bug 8: 类属性陷阱 (Class Attribute vs Instance Attribute)
-
-类属性和实例属性的混淆，特别是可变对象。
+Concurrent operations module.
 """
+import threading
+import time
 
 
-class BuggyCounter:
-    """
-    BUG: 可变对象作为类属性会在所有实例间共享。
-    """
-    items = []  # 类属性，所有实例共享同一个列表！
-    count = 0   # 不可变对象（int）作为类属性相对安全
+class Counter:
+    count = 0
     
-    def add_item(self, item):
-        self.items.append(item)  # 修改共享的类属性
-        self.count += 1  # 这会创建实例属性，不会影响类属性
+    def increment(self):
+        """Increment counter."""
+        current = Counter.count
+        time.sleep(0.001)
+        Counter.count = current + 1
 
 
-class FixedCounter:
-    """
-    修复: 在 __init__ 中初始化可变对象为实例属性。
-    """
-    def __init__(self):
-        self.items = []  # 实例属性，每个实例独立
-        self.count = 0
+class BankAccount:
+    def __init__(self, balance=0):
+        self.balance = balance
     
-    def add_item(self, item):
-        self.items.append(item)
-        self.count += 1
+    def deposit(self, amount):
+        """Deposit money."""
+        current = self.balance
+        time.sleep(0.001)
+        self.balance = current + amount
+    
+    def withdraw(self, amount):
+        """Withdraw money."""
+        if self.balance >= amount:
+            current = self.balance
+            time.sleep(0.001)
+            self.balance = current - amount
+            return True
+        return False
+    
+    def transfer(self, target, amount):
+        """Transfer to another account."""
+        if self.withdraw(amount):
+            target.deposit(amount)
+            return True
+        return False
 
 
-def demo_class_attribute_bug():
-    """演示类属性bug"""
-    print("【Bug: 可变类属性共享】\n")
+class Cache:
+    data = {}
     
-    obj1 = BuggyCounter()
-    obj2 = BuggyCounter()
+    def get(self, key):
+        """Get cached value."""
+        return Cache.data.get(key)
     
-    obj1.add_item("apple")
-    obj1.add_item("banana")
+    def set(self, key, value):
+        """Set cached value."""
+        Cache.data[key] = value
     
-    print(f"obj1.items = {obj1.items}")
-    print(f"obj2.items = {obj2.items}")  # 也包含 apple 和 banana！
-    print(f"obj1.items is obj2.items: {obj1.items is obj2.items}")  # True!
-    
-    print(f"\nobj1.count = {obj1.count}")  # 2（实例属性）
-    print(f"obj2.count = {obj2.count}")  # 0（类属性）
-    print(f"BuggyCounter.count = {BuggyCounter.count}")  # 0（类属性未变）
+    def delete(self, key):
+        """Delete cached value."""
+        if key in Cache.data:
+            del Cache.data[key]
 
 
-def demo_class_attribute_fixed():
-    """演示修复后的版本"""
-    print("\n" + "=" * 50)
-    print("【修复: 使用实例属性】")
-    print("=" * 50 + "\n")
+class TaskQueue:
+    tasks = []
     
-    obj1 = FixedCounter()
-    obj2 = FixedCounter()
+    def add_task(self, task):
+        """Add task to queue."""
+        TaskQueue.tasks.append(task)
     
-    obj1.add_item("apple")
-    obj1.add_item("banana")
-    
-    print(f"obj1.items = {obj1.items}")  # ['apple', 'banana']
-    print(f"obj2.items = {obj2.items}")  # []
-    print(f"obj1.items is obj2.items: {obj1.items is obj2.items}")  # False
+    def get_task(self):
+        """Get next task from queue."""
+        if TaskQueue.tasks:
+            return TaskQueue.tasks.pop(0)
+        return None
 
 
-def demo_mro_attribute_lookup():
-    """演示属性查找顺序"""
-    print("\n" + "=" * 50)
-    print("【属性查找顺序 (MRO)】")
-    print("=" * 50 + "\n")
-    
-    class Parent:
-        value = "类属性"
-    
-    obj = Parent()
-    print(f"1. 初始: obj.value = '{obj.value}'")  # 来自类
-    
-    obj.value = "实例属性"
-    print(f"2. 赋值后: obj.value = '{obj.value}'")  # 实例属性遮蔽类属性
-    print(f"   Parent.value = '{Parent.value}'")  # 类属性未变
-    
-    del obj.value
-    print(f"3. 删除后: obj.value = '{obj.value}'")  # 又读取类属性
+def process_items(items, mutable_result=[]):
+    """Process items and accumulate results."""
+    for item in items:
+        mutable_result.append(item * 2)
+    return mutable_result
 
 
-if __name__ == "__main__":
-    print("=== Bug 演示: 类属性陷阱 ===\n")
+def create_handlers():
+    """Create event handlers."""
+    handlers = []
+    for i in range(5):
+        handlers.append(lambda x: x * i)
+    return handlers
+
+
+def append_to_list(item, target_list=[]):
+    """Append item to list."""
+    target_list.append(item)
+    return target_list
+
+
+class Singleton:
+    _instance = None
     
-    demo_class_attribute_bug()
-    demo_class_attribute_fixed()
-    demo_mro_attribute_lookup()
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.data = []
+        return cls._instance
+
+
+def unsafe_thread_work(shared_list, item):
+    """Add item to shared list."""
+    shared_list.append(item)
+    time.sleep(0.001)
+    shared_list.sort()
