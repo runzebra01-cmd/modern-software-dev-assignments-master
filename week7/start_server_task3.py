@@ -35,8 +35,8 @@ if __name__ == "__main__":
     print("  • POST   /tags/{id}/notes/{note_id} - Add tag to note")
     print("  • DELETE /tags/{id}/notes/{note_id} - Remove tag from note")
     print("  • GET    /notes/{id}/with-tags - Get note with tags")
-    print("\nServer: http://127.0.0.1:8002")
-    print("API Docs: http://127.0.0.1:8002/docs")
+    print("\nServer: http://127.0.0.1:8083")
+    print("API Docs: http://127.0.0.1:8083/docs")
     print("=" * 70 + "\n")
     
-    uvicorn.run(app, host="127.0.0.1", port=8002, reload=False)
+    uvicorn.run(app, host="127.0.0.1", port=8083, reload=False)
