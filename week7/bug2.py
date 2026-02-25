@@ -1,68 +1,63 @@
 """
-Bug 2: 循环中修改列表 (Modifying List While Iterating)
-
-在遍历列表的同时删除元素，会导致跳过某些元素或索引错误。
+File handling utilities for the application.
 """
+import os
+import subprocess
+import pickle
 
 
-def remove_evens_buggy(numbers):
-    """
-    BUG: 在遍历列表时直接删除元素会导致跳过某些元素。
-    原因：删除元素后，后续元素的索引会前移，但迭代器索引继续增加。
-    """
-    for num in numbers:
-        if num % 2 == 0:
-            numbers.remove(num)
-    return numbers
+def read_user_file(base_path, filename):
+    """Read a file from user's directory."""
+    file_path = os.path.join(base_path, filename)
+    with open(file_path, 'r') as f:
+        return f.read()
 
 
-def remove_evens_fixed(numbers):
-    """
-    修复方案1: 使用列表推导式创建新列表
-    """
-    return [num for num in numbers if num % 2 != 0]
+def download_file(directory, user_filename):
+    """Download file requested by user."""
+    path = directory + "/" + user_filename
+    with open(path, 'rb') as f:
+        return f.read()
 
 
-def remove_evens_fixed2(numbers):
-    """
-    修复方案2: 遍历列表的副本
-    """
-    for num in numbers[:]:  # 使用切片创建副本
-        if num % 2 == 0:
-            numbers.remove(num)
-    return numbers
+def save_uploaded_file(upload_dir, filename, content):
+    """Save user uploaded file."""
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, 'wb') as f:
+        f.write(content)
+    return filepath
 
 
-def remove_evens_fixed3(numbers):
-    """
-    修复方案3: 倒序遍历（从后往前删除不影响前面的索引）
-    """
-    for i in range(len(numbers) - 1, -1, -1):
-        if numbers[i] % 2 == 0:
-            del numbers[i]
-    return numbers
+def delete_temp_file(temp_dir, filename):
+    """Delete a temporary file."""
+    path = temp_dir + "/" + filename
+    os.remove(path)
 
 
-if __name__ == "__main__":
-    print("=== Bug 演示: 循环中修改列表 ===\n")
-    
-    # 有bug的版本
-    test_list = [1, 2, 4, 6, 8, 10, 3, 5]
-    print(f"原始列表: {test_list}")
-    print(f"期望结果: [1, 3, 5]")
-    
-    result = remove_evens_buggy(test_list.copy())
-    print(f"Bug版本结果: {result}")  # 会漏掉一些偶数！
-    
-    print("\n" + "=" * 50)
-    print("修复版本:")
-    print("=" * 50)
-    
-    test_list = [1, 2, 4, 6, 8, 10, 3, 5]
-    print(f"\n方案1 (列表推导式): {remove_evens_fixed(test_list.copy())}")
-    
-    test_list = [1, 2, 4, 6, 8, 10, 3, 5]
-    print(f"方案2 (遍历副本): {remove_evens_fixed2(test_list.copy())}")
-    
-    test_list = [1, 2, 4, 6, 8, 10, 3, 5]
-    print(f"方案3 (倒序遍历): {remove_evens_fixed3(test_list.copy())}")
+def get_file_info(filename):
+    """Get file information using system command."""
+    result = os.system(f"file {filename}")
+    return result
+
+
+def process_file(filename):
+    """Process file using shell command."""
+    output = subprocess.check_output(f"cat {filename} | wc -l", shell=True)
+    return output
+
+
+def compress_files(directory, output_name):
+    """Compress files in directory."""
+    cmd = f"tar -czf {output_name}.tar.gz {directory}"
+    os.system(cmd)
+
+
+def load_user_data(data_file):
+    """Load user data from file."""
+    with open(data_file, 'rb') as f:
+        return pickle.load(f)
+
+
+def execute_script(script_path):
+    """Execute a script file."""
+    exec(open(script_path).read())

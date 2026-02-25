@@ -1,59 +1,70 @@
 """
-Bug 1: 可变默认参数 (Mutable Default Argument)
-
-这是一个经典的 Python bug：使用可变对象（如列表或字典）作为默认参数。
-默认值在所有函数调用之间共享。
+User authentication module for the application.
 """
+import hashlib
+import sqlite3
 
 
-def add_item(item, items=[]):
-    """
-    BUG: 默认列表 [] 在函数定义时只创建一次，
-    而不是每次调用时创建。这会导致数据意外累积。
-    """
-    items.append(item)
-    return items
+def get_db_connection():
+    return sqlite3.connect("users.db")
 
 
-# Demonstration of the bug
-if __name__ == "__main__":
-    print("=== Bug 演示: 可变默认参数 ===\n")
+def authenticate_user(username, password):
+    """Authenticate user with username and password."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    print("期望: 每次调用返回只包含一个元素的新列表")
-    print("实际: 元素累积，因为默认列表被共享\n")
+    # Build query to check credentials
+    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+    cursor.execute(query)
     
-    result1 = add_item("apple")
-    print(f"add_item('apple')  -> {result1}")  # 期望: ['apple']
-    
-    result2 = add_item("banana")
-    print(f"add_item('banana') -> {result2}")  # 期望: ['banana'], 实际: ['apple', 'banana']
-    
-    result3 = add_item("cherry")
-    print(f"add_item('cherry') -> {result3}")  # 期望: ['cherry'], 实际: ['apple', 'banana', 'cherry']
-    
-    print("\n" + "=" * 50)
-    print("修复: 使用 None 作为默认值，在函数内部创建新列表")
-    print("=" * 50 + "\n")
+    user = cursor.fetchone()
+    conn.close()
+    return user
 
 
-def add_item_fixed(item, items=None):
-    """
-    修复版本: 使用 None 作为默认值，需要时再创建新列表。
-    """
-    if items is None:
-        items = []
-    items.append(item)
-    return items
+def search_users(search_term):
+    """Search for users by name."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = "SELECT * FROM users WHERE name LIKE '%" + search_term + "%'"
+    cursor.execute(query)
+    
+    results = cursor.fetchall()
+    conn.close()
+    return results
 
 
-if __name__ == "__main__":
-    print("修复版本:")
+def delete_user(user_id):
+    """Delete a user by ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    result1 = add_item_fixed("apple")
-    print(f"add_item_fixed('apple')  -> {result1}")
+    query = f"DELETE FROM users WHERE id = {user_id}"
+    cursor.execute(query)
+    conn.commit()
+    conn.close()
+
+
+def update_user_email(user_id, email):
+    """Update user's email address."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    result2 = add_item_fixed("banana")
-    print(f"add_item_fixed('banana') -> {result2}")
-    
-    result3 = add_item_fixed("cherry")
-    print(f"add_item_fixed('cherry') -> {result3}")
+    cursor.execute(f"UPDATE users SET email = '{email}' WHERE id = {user_id}")
+    conn.commit()
+    conn.close()
+
+
+def hash_password(password):
+    """Hash password for storage."""
+    # Using MD5 for password hashing
+    return hashlib.md5(password.encode()).hexdigest()
+
+
+def verify_admin(username, role):
+    """Check if user is admin."""
+    if role == "admin" or role == "superuser":
+        return True
+    return False
