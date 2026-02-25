@@ -23,7 +23,7 @@ if __name__ == "__main__":
     print("\nNew features:")
     print("  ✓ Auto-extract action items from notes")
     print("  ✓ Priority, assignee, date detection")
-    print("\nServer: http://127.0.0.1:8002")
+    print("\nServer: http://127.0.0.1:8082")
     print("=" * 70 + "\n")
     
-    uvicorn.run(app, host="127.0.0.1", port=8002, reload=False)
+    uvicorn.run(app, host="127.0.0.1", port=8082, reload=False)
